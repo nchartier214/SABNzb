@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A tiny library for parsing nzb documents with .NET</Description>
+    <Copyright>Copyright © Kristian Hellang 2019</Copyright>
+    <VersionPrefix>2.3.0</VersionPrefix>
+    <Authors>Kristian Hellang</Authors>
+    <PackageId>Nzb</PackageId>
+    <PackageTags>nzb;parser;usenet</PackageTags>
+    <TargetFrameworks>netstandard1.0;netstandard2.0</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PackageIconUrl>https://raw.githubusercontent.com/khellang/Nzb/master/etc/nzb_256.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/khellang/Nzb</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/khellang/Nzb</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19270-01" PrivateAssets="All" />
+    <PackageReference Include="JetBrains.Annotations" Version="2019.1.1" PrivateAssets="All" />
+  </ItemGroup>
+</Project>
