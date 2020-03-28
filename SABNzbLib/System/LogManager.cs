@@ -14,16 +14,16 @@ namespace Nzb.System
 #pragma warning disable CA1304, CA1305
     public class LogManager
     {
-        private Lazy<ILog> _logInfo = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Info"));
-        private Lazy<ILog> _logDebug = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Debug"));
-        private Lazy<ILog> _logError = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Error"));
-        private Lazy<ILog> _logWarn = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Warn"));
+        private readonly Lazy<ILog> _logInfo = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Info"));
+        private readonly Lazy<ILog> _logDebug = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Debug"));
+        private readonly Lazy<ILog> _logError = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Error"));
+        private readonly Lazy<ILog> _logWarn = new Lazy<ILog>(() => log4net.LogManager.GetLogger("Warn"));
         private ILog LogInfo { get { return this._logInfo.Value; } }
         private ILog LogError { get { return this._logError.Value; } }
         private ILog LogWarn { get { return this._logWarn.Value; } }
         private ILog LogDebug { get { return this._logDebug.Value; } }
 
-        private static Lazy<LogManager> _current = new Lazy<LogManager>(() => new LogManager());
+        private static readonly Lazy<LogManager> _current = new Lazy<LogManager>(() => new LogManager());
         public  static LogManager Current { get { return LogManager._current.Value; } }
 
         static LogManager()
@@ -79,6 +79,9 @@ namespace Nzb.System
 
         public void Error(Exception ex)
         {
+            if (ex == null)
+                throw new ArgumentNullException(nameof(ex));
+
             this.LogError.Error(ex.Message, ex);
         }
     }

@@ -11,7 +11,7 @@ namespace Nzb.DataModel
 {
     public class NzbConfiguration
     {
-        private static Lazy<NzbConfiguration> _current = new Lazy<NzbConfiguration>(() =>
+        private readonly static Lazy<NzbConfiguration> _current = new Lazy<NzbConfiguration>(() =>
         {
             var section = ((Hashtable)ConfigurationManager.GetSection("nzb"))
                          .Cast<DictionaryEntry>()
@@ -20,7 +20,8 @@ namespace Nzb.DataModel
             return new NzbConfiguration(
                 Convert.ToInt32(section["sleep"], CultureInfo.InvariantCulture),
                 section["completeDirectory"],
-                Convert.ToInt32(section["timeoutWaiting"], CultureInfo.InvariantCulture)
+                Convert.ToInt32(section["timeoutWaiting"], CultureInfo.InvariantCulture),
+                section["mutexName"]
                 );
         });
 
@@ -29,8 +30,11 @@ namespace Nzb.DataModel
         public string CompleteDirectory { get; private set; }
 
         public int TimeoutWaiting { get; private set; }
-        private NzbConfiguration(int sleep, string completeDirectory, int timeoutWaiting)
+        public string MutexName { get; private set; }
+
+        private NzbConfiguration(int sleep, string completeDirectory, int timeoutWaiting, string mutexName)
         {
+            this.MutexName = mutexName;
             this.Sleep = sleep;
             this.CompleteDirectory = completeDirectory;
             this.TimeoutWaiting = timeoutWaiting;

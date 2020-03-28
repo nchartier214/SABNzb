@@ -61,6 +61,24 @@ namespace SABPut.Properties {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Complete directory not found.
+        /// </summary>
+        internal static string DirectoryNotFound {
+            get {
+                return ResourceManager.GetString("DirectoryNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à NZB file is don&apos;t passed.
+        /// </summary>
+        internal static string NZBDontPassed {
+            get {
+                return ResourceManager.GetString("NZBDontPassed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une ressource localisée de type System.Drawing.Icon semblable à (Icône).
         /// </summary>
         internal static System.Drawing.Icon ProgramIco {

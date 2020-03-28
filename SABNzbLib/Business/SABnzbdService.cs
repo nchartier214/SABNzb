@@ -11,6 +11,7 @@ using System.Net;
 using Nzb.DataModel;
 using Nzb.System;
 using System.Threading;
+using System.IO;
 
 namespace Nzb.Business
 {
@@ -18,12 +19,9 @@ namespace Nzb.Business
 
     public class SABnzbdService
     {
-        private static readonly Lazy<IDictionary<string, string>> _configurationNames = new Lazy<IDictionary<string, string>>(() =>
-                    ((IDictionary)ConfigurationManager.GetSection("sabnzbd"))
-                    .Cast<DictionaryEntry>()
-                    .ToDictionary(elt => (string)elt.Key, elt => (string)elt.Value));
-        private Lazy<InterfaceWebManager> _interfaceWebManager = 
-                    new Lazy<InterfaceWebManager>(() => new InterfaceWebManager( new Uri(SABnzbdConfiguration.Current.Server), SABnzbdConfiguration.Current.UserAgent));
+
+        private readonly Lazy<InterfaceWebManager> _interfaceWebManager =
+                    new Lazy<InterfaceWebManager>(() => new InterfaceWebManager(new Uri(SABnzbdConfiguration.Current.Server), SABnzbdConfiguration.Current.UserAgent));
 
         private InterfaceWebManager InterfaceWebManager { get { return this._interfaceWebManager.Value; } }
 
@@ -36,10 +34,12 @@ namespace Nzb.Business
 
         public bool IsAlive()
         {
-            Dictionary<string, object> postParameters = new Dictionary<string, object>();
-            postParameters.Add("mode", "fullstatus");
-            postParameters.Add("skip_dashboard", "0");
-            postParameters.Add("apikey", SABnzbdConfiguration.Current.ApiKey);
+            var postParameters = new List<Tuple<string, object>>() {
+                Tuple.Create( "mode", (object)"fullstatus"),
+                Tuple.Create("skip_dashboard", (object)"0"),
+                Tuple.Create("apikey", (object)SABnzbdConfiguration.Current.ApiKey) }
+            .ToDictionary(elt => elt.Item1, elt => elt.Item2);
+
             var reponse = this.InterfaceWebManager.DataPost(postParameters);
             var ret1 = reponse.StatusCode == HttpStatusCode.OK;
             return ret1;
@@ -47,11 +47,11 @@ namespace Nzb.Business
 
         public void StartProcess()
         {
-            Process retour = null;
+            LogManager.Current.Debug("Enter in StartProcess");
             var processes = Process.GetProcessesByName(SABnzbdConfiguration.Current.ProcessName);
             if (!processes.Any())
             {
-                using (var mutex = new Mutex(false, SABnzbdConfiguration.Current.ProgramPath))
+                using (var mutex = new Mutex(false, NzbConfiguration.Current.MutexName))
                 {
                     var mutexAcquired = false;
                     try
@@ -66,20 +66,21 @@ namespace Nzb.Business
                             Process.Start(SABnzbdConfiguration.Current.ProgramPath);
                             Thread.Sleep(NzbConfiguration.Current.Sleep);
                             processes = Process.GetProcessesByName(SABnzbdConfiguration.Current.ProcessName);
-                            retour = processes.First();
+                            processes.First();
+                            LogManager.Current.Info($"Démarrage du serveur : {SABnzbdConfiguration.Current.ProcessName}");
                         }
                     }
-                    catch (AbandonedMutexException)
+                    catch (AbandonedMutexException ex)
                     {
-                        // abandoned mutexes are still acquired, we just need
-                        // to handle the exception and treat it as acquisition
-                        mutexAcquired = true;
+                        LogManager.Current.Error(ex);
+                        throw;
                     }
                 }
-
             }
+
+            LogManager.Current.Debug($"End StartProcess :{SABnzbdConfiguration.Current.ProcessName}");
         }
-        
+
         public bool Import(NzbDocumentWrapper document)
         {
             Contract.Requires(document != null);
@@ -89,9 +90,22 @@ namespace Nzb.Business
             postParameters.Add("nzbname", document.Name);
             postParameters.Add("nzbfile", parameter);
             postParameters.Add("apikey", SABnzbdConfiguration.Current.ApiKey);
-            var reponse = this.InterfaceWebManager.DataPost(postParameters);
-            var st1 = reponse.StringValue();
-            var retour = reponse.StatusCode == HttpStatusCode.OK;
+            LogManager.Current.Debug($"Import de  : {document.Name}  " );
+
+            var retour = false;
+            using (var reponse = this.InterfaceWebManager.DataPost(postParameters))
+            {
+                var st1 = string.Empty;
+                Contract.Requires(reponse != null);
+                using (var responseReader = new StreamReader(reponse.GetResponseStream()))
+                {
+                    st1 = responseReader.ReadToEnd();
+                }
+
+                LogManager.Current.Debug($"Aprés import, {reponse.StatusCode}, Chaine retour: {st1}");
+                retour = reponse.StatusCode == HttpStatusCode.OK;
+            }
+
             return retour;
         }
     }

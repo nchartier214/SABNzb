@@ -11,7 +11,7 @@ namespace Nzb.DataModel
 {
     public class SABnzbdConfiguration
     {
-        private static Lazy<SABnzbdConfiguration> _current = new Lazy<SABnzbdConfiguration>(() =>
+        private static readonly Lazy<SABnzbdConfiguration> _current = new Lazy<SABnzbdConfiguration>(() =>
         {
             var section = ((Hashtable)ConfigurationManager.GetSection("sabnzbd"))
                           .Cast<DictionaryEntry>()
