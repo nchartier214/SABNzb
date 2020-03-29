@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 using Nzb;
 using Nzb.DataModel;
 using Nzb.System;
+using System.IO.Compression;
 
 namespace Nzb.Business
 {
@@ -19,38 +21,105 @@ namespace Nzb.Business
     {
         public event EventHandler<NzbEventArgs> NzbEventHander;
 
-        public void Do(IEnumerable<string> nzbFullPaths)
+        public SABnzbdService SABnzbdService { get; } = new SABnzbdService();
+        public ManagedFile GetManagedFile(string fichierFullPath)
         {
-            if (nzbFullPaths == null)
-                throw new ArgumentNullException(nameof(nzbFullPaths));
+            ManagedFile retour = ManagedFile.Other;
+            var extension = Path.GetExtension(fichierFullPath).ToUpperInvariant();
+            switch (extension)
+            {
+                case ".NZB":
+                    retour = ManagedFile.Nzb;
+                    break;
+                case ".ZIP":
+                    retour = ManagedFile.Zip;
+                    break;
+            }
 
-            foreach (var nzbFullPath in nzbFullPaths)
-                this.Do(nzbFullPath);
+            return retour;
         }
 
-        public void Do(string nzbFullPath)
+        public bool IsManagedFile(string fichierFullPath)
         {
+            var extension = this.GetManagedFile(fichierFullPath);
+            return extension != ManagedFile.Other;
+        }
+        public void Do(string fichierFullPath)
+        {
+            if (!this.SABnzbdService.IsWorkingProcess())
+            {
+                this.FireNzbEvent("préparation du lancement de SABnzdb");
+                this.SABnzbdService.StartProcess();
+                this.FireNzbEvent("lancement de SABnzbd effectué");
+            }
 
+            var extension = this.GetManagedFile(fichierFullPath);
+            switch (extension)
+            {
+                case ManagedFile.Nzb:
+                    DoNzb(fichierFullPath);
+                    break;
+                case ManagedFile.Zip:
+                    DoZip(fichierFullPath);
+                    break;
+            }
+        }
+
+        public void DoZip(string nzbFullPath)
+        {
+            bool erreur = false;
+            var erreurFiles = new List<string>();
+            using (var zip = ZipFile.OpenRead(nzbFullPath))
+            {
+                foreach (var fil1 in zip.Entries)
+                {
+                    var extension = this.GetManagedFile(fil1.FullName);
+                    if (extension == ManagedFile.Other)
+                    {
+                        var fileName = Path.Combine(KnownFolders.GetPath(KnownFolder.Downloads), Path.GetFileName(fil1.FullName));
+                        fil1.ExtractToFile(fileName, true);
+                        erreurFiles.Add(fileName);
+                        erreur = true;
+                    }
+                    else
+                    {
+                        var fileName = Path.GetTempFileName();
+                        fil1.ExtractToFile(fileName, true);
+                        var contents = File.ReadAllBytes(fileName);
+                        var nzbDocument = NzbPut.GetNzbDocument(contents);
+                        var key = NzbPut.GetKeyName(nzbFullPath, nzbDocument);
+
+                        var xDocument = new NzbDocumentWrapper(key, nzbFullPath, contents, nzbDocument);
+                        this.DoNzb(xDocument);
+                        File.Delete(fileName);
+                    }
+                }
+            }
+
+            if (erreur)
+                throw new NzbZipException($"copy bad file ({String.Join(", ", erreurFiles)} in {KnownFolders.GetPath(KnownFolder.Downloads)}");
+        }
+
+        public void DoNzb(string nzbFullPath)
+        {
             var contents = File.ReadAllBytes(nzbFullPath);
             var nzbDocument = NzbPut.GetNzbDocument(contents);
             var key = NzbPut.GetKeyName(nzbFullPath, nzbDocument);
 
             var xDocument = new NzbDocumentWrapper(key, nzbFullPath, contents, nzbDocument);
+            this.DoNzb(xDocument);
+        }
 
-            var sabNzbdService = new SABnzbdService();
-            if (!sabNzbdService.IsWorkingProcess())
-            {
-                this.FireNzbEvent("préparation du lancement de SABnzdb");
-                sabNzbdService.StartProcess();
-                this.FireNzbEvent("lancement de SABnzbd effectué");
-            }
+        public void DoNzb(NzbDocumentWrapper xDocument)
+        {
+            Contract.Requires(xDocument != null);
 
-            if (sabNzbdService.IsWorkingProcess() && sabNzbdService.IsAlive())
-            {
-                this.FireNzbEvent($"préparation du démarage de {xDocument.Name}");
-                sabNzbdService.Import(xDocument);
-                this.FireNzbEvent($"lancement de {xDocument.Name}");
-            }
+            if (!(this.SABnzbdService.IsWorkingProcess() && this.SABnzbdService.IsAlive()))
+                throw new NzbException("state exception");
+
+            this.FireNzbEvent($"préparation du démarage de {xDocument.Name}");
+            this.SABnzbdService.Import(xDocument);
+            this.FireNzbEvent($"lancement de {xDocument.Name}");
         }
 
         private static long GetValChrono()

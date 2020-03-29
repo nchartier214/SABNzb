@@ -13,16 +13,22 @@ namespace Nzb.DataModel
     {
         private readonly static Lazy<NzbConfiguration> _current = new Lazy<NzbConfiguration>(() =>
         {
+            Func<string, int> parseValeur = delegate (string value)
+            {
+                var ts = TimeSpan.Parse(value, CultureInfo.InvariantCulture);
+                return Convert.ToInt32(ts.TotalMilliseconds);
+            };
+
             var section = ((Hashtable)ConfigurationManager.GetSection("nzb"))
                          .Cast<DictionaryEntry>()
                          .ToDictionary(kvp => (string)kvp.Key, kvp => (string)kvp.Value);
 
             return new NzbConfiguration(
-                Convert.ToInt32(section["sleep"], CultureInfo.InvariantCulture),
+                parseValeur( section["sleep"]),
                 section["completeDirectory"],
-                Convert.ToInt32(section["timeoutWaiting"], CultureInfo.InvariantCulture),
+                parseValeur(section["timeoutWaiting"]),
                 section["mutexName"]
-                );
+            );
         });
 
         public static NzbConfiguration Current { get { return NzbConfiguration._current.Value; } }

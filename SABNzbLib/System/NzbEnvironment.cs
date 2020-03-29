@@ -8,11 +8,12 @@ using System.Threading.Tasks;
 
 namespace Nzb.System
 {
-    public static class Environment
+    public static class NzbEnvironment
     {
         public static DirectoryInfo ProgramDirectory()
         {
             return new FileInfo(Assembly.GetExecutingAssembly().FullName).Directory;
         }
+ 
     }
 }

@@ -15,18 +15,30 @@ namespace SABNzbPut
 {
     class Program
     {
+        private static Lazy<NzbPut> _nzbBusiness = new Lazy<NzbPut>(() =>
+        {
+            var retour = new NzbPut();
+            retour.NzbEventHander += (s, e) =>
+            {
+                var stopWatch = NzbContextDictionary.Current.Get<Stopwatch>(NzbContextDictionary.PrincipaleStopwath);
+                var msg = $"{stopWatch.ElapsedMilliseconds}ms - {e.Message}";
+                Console.WriteLine(msg);
+                Debug.Print(msg);
+            };
 
+            return retour;
+        });
+
+        private static NzbPut NzbBusiness { get { return Program._nzbBusiness.Value; } }
         static void Main(string[] args)
         {
             var stopWatch = Stopwatch.StartNew();
             var context = NzbContextDictionary.Create();
             context.Add(NzbContextDictionary.PrincipaleStopwath, stopWatch);
-
             log4net.Config.XmlConfigurator.Configure();
 
             if (!Directory.Exists(NzbConfiguration.Current.CompleteDirectory))
                 throw new DirectoryNotFoundException(Resources.DirectoryNotFound);
-
 
             if (args.Count() == 0)
             {
@@ -35,24 +47,54 @@ namespace SABNzbPut
                 throw new ArgumentException(msg);
             }
 
-            LogManager.Current.Info($"Traitement du fichier: {args[0]}");
+            var fileName = args.First();
 
-            try
+            using (var mutex = new Mutex(false, NzbConfiguration.Current.MutexName))
             {
-                var nzbBusiness = new NzbPut();
-                nzbBusiness.NzbEventHander += (s, e) =>
+                var mutexAcquired = false;
+                try
                 {
-                    Console.WriteLine($"{e.Message}  == {stopWatch.ElapsedMilliseconds}ms") ;
-                    Debug.Print($"{e.Message}  == {stopWatch.ElapsedMilliseconds}ms");
-                };
+                    // acquire the mutex (or timeout after 60 seconds)
+                    // will return false if it timed out
+                    mutexAcquired = mutex.WaitOne(NzbConfiguration.Current.TimeoutWaiting);
 
-                nzbBusiness.Do((IEnumerable<string>)args);
+                    try
+                    {
+                        Program.Traitement(fileName);
+                    }
+                    catch (FileNotFoundException ex)
+                    {
+                        LogManager.Current.Error(ex);
+                        throw;
+                    }
+                    catch (NzbZipException ex)
+                    {
+                        LogManager.Current.Error(ex);
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        File.Copy(fileName, Path.Combine(KnownFolders.GetPath(KnownFolder.Downloads), Path.GetFileName(fileName)), true);
+                        LogManager.Current.Error(ex);
+                        throw;
+                    }
+                }
+
+                catch (AbandonedMutexException ex)
+                {
+                    LogManager.Current.Error(ex);
+                    throw;
+                }
             }
-            catch (Exception ex)
-            {
-                LogManager.Current.Error(ex);
-                throw;
-            }
+        }
+
+        static void Traitement(string fileName)
+        {
+            LogManager.Current.Info($"Traitement du fichier: {fileName}");
+            if (!Program.NzbBusiness.IsManagedFile(fileName))
+                throw new NzbException("No managed extension");
+
+            Program.NzbBusiness.Do(fileName);
 
             LogManager.Current.Info($"Fin de Traitement: {NzbContextDictionary.Current.Get<Stopwatch>(NzbContextDictionary.PrincipaleStopwath).ElapsedMilliseconds}ms");
         }

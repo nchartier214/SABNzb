@@ -51,31 +51,11 @@ namespace Nzb.Business
             var processes = Process.GetProcessesByName(SABnzbdConfiguration.Current.ProcessName);
             if (!processes.Any())
             {
-                using (var mutex = new Mutex(false, NzbConfiguration.Current.MutexName))
-                {
-                    var mutexAcquired = false;
-                    try
-                    {
-                        // acquire the mutex (or timeout after 60 seconds)
-                        // will return false if it timed out
-                        mutexAcquired = mutex.WaitOne(NzbConfiguration.Current.TimeoutWaiting);
-
-                        processes = Process.GetProcessesByName(SABnzbdConfiguration.Current.ProcessName);
-                        if (!processes.Any())
-                        {
-                            Process.Start(SABnzbdConfiguration.Current.ProgramPath);
-                            Thread.Sleep(NzbConfiguration.Current.Sleep);
-                            processes = Process.GetProcessesByName(SABnzbdConfiguration.Current.ProcessName);
-                            processes.First();
-                            LogManager.Current.Info($"Démarrage du serveur : {SABnzbdConfiguration.Current.ProcessName}");
-                        }
-                    }
-                    catch (AbandonedMutexException ex)
-                    {
-                        LogManager.Current.Error(ex);
-                        throw;
-                    }
-                }
+                Process.Start(SABnzbdConfiguration.Current.ProgramPath);
+                Thread.Sleep(NzbConfiguration.Current.Sleep);
+                processes = Process.GetProcessesByName(SABnzbdConfiguration.Current.ProcessName);
+                processes.First();
+                LogManager.Current.Info($"Démarrage du serveur : {SABnzbdConfiguration.Current.ProcessName}");
             }
 
             LogManager.Current.Debug($"End StartProcess :{SABnzbdConfiguration.Current.ProcessName}");
@@ -90,7 +70,7 @@ namespace Nzb.Business
             postParameters.Add("nzbname", document.Name);
             postParameters.Add("nzbfile", parameter);
             postParameters.Add("apikey", SABnzbdConfiguration.Current.ApiKey);
-            LogManager.Current.Debug($"Import de  : {document.Name}  " );
+            LogManager.Current.Debug($"Import de  : {document.Name}  ");
 
             var retour = false;
             using (var reponse = this.InterfaceWebManager.DataPost(postParameters))
