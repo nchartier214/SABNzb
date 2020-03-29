@@ -89,6 +89,7 @@
     <Compile Include="System\NzbEnvironment.cs" />
     <Compile Include="System\LogManager.cs" />
     <Compile Include="System\StringEqualityComparer.cs" />
+    <Compile Include="System\Types\StringExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

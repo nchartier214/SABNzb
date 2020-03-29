@@ -101,7 +101,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="4f5becd4f5929afd4c04b95d.nzb" />
-    <None Include="4fcd3c972b1f829cca0d50b2.zip" />
+    <Content Include="4fcd3c972b1f829cca0d50b2.zip.txt" />
     <None Include="App.config" />
     <None Include="article_866551.pdf" />
     <None Include="packages.config" />

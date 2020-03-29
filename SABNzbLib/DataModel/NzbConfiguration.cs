@@ -13,10 +13,10 @@ namespace Nzb.DataModel
     {
         private readonly static Lazy<NzbConfiguration> _current = new Lazy<NzbConfiguration>(() =>
         {
-            Func<string, int> parseValeur = delegate (string value)
+            Func<string, TimeSpan> parseValeur = delegate (string value)
             {
                 var ts = TimeSpan.Parse(value, CultureInfo.InvariantCulture);
-                return Convert.ToInt32(ts.TotalMilliseconds);
+                return ts;
             };
 
             var section = ((Hashtable)ConfigurationManager.GetSection("nzb"))
@@ -32,13 +32,13 @@ namespace Nzb.DataModel
         });
 
         public static NzbConfiguration Current { get { return NzbConfiguration._current.Value; } }
-        public int Sleep { get; private set; }
+        public TimeSpan Sleep { get; private set; }
         public string CompleteDirectory { get; private set; }
 
-        public int TimeoutWaiting { get; private set; }
+        public TimeSpan TimeoutWaiting { get; private set; }
         public string MutexName { get; private set; }
 
-        private NzbConfiguration(int sleep, string completeDirectory, int timeoutWaiting, string mutexName)
+        private NzbConfiguration(TimeSpan sleep, string completeDirectory, TimeSpan timeoutWaiting, string mutexName)
         {
             this.MutexName = mutexName;
             this.Sleep = sleep;

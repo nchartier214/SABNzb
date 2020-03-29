@@ -24,8 +24,31 @@ namespace Nzb.Business
         public SABnzbdService SABnzbdService { get; } = new SABnzbdService();
         public ManagedFile GetManagedFile(string fichierFullPath)
         {
+            Func<string, string> supressExtension = delegate (string fileName)
+            {
+                var rep = Path.GetDirectoryName(fileName);
+                var fil1 = Path.GetFileNameWithoutExtension(fileName);
+                var ret1 = Path.Combine(rep, fil1);
+                LogManager.Current.Debug($"NbzPut.GetManagerFile.supressExtension - FileName: {ret1}");
+                return ret1;
+            };
+
+            Func<string, ManagedFile> getSecondExtension = delegate (string fileName)
+            {
+                var ret1 = Path.GetExtension(supressExtension(fichierFullPath));
+                var ret2 = ManagedFile.Other;
+                if (ret1.StartsWith(".ZIP", StringComparison.OrdinalIgnoreCase))
+                    ret2 = ManagedFile.Zip;
+                else if (ret1.StartsWith(".NZB", StringComparison.OrdinalIgnoreCase))
+                    ret2 = ManagedFile.Nzb;
+
+                LogManager.Current.Debug($"NbzPut.GetManagerFile.getSecondExtension - Extension: {ret1} - {ret2}");
+                return ret2;
+            };
+
             ManagedFile retour = ManagedFile.Other;
             var extension = Path.GetExtension(fichierFullPath).ToUpperInvariant();
+            LogManager.Current.Debug($"NbzPut.GetManagerFile - Extension: {extension}");
             switch (extension)
             {
                 case ".NZB":
@@ -33,6 +56,9 @@ namespace Nzb.Business
                     break;
                 case ".ZIP":
                     retour = ManagedFile.Zip;
+                    break;
+                case ".TXT":
+                    retour = getSecondExtension(fichierFullPath);
                     break;
             }
 

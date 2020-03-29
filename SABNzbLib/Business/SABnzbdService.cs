@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Net;
 using Nzb.DataModel;
 using Nzb.System;
+using Nzb.System.Types;
 using System.Threading;
 using System.IO;
 
@@ -75,14 +76,14 @@ namespace Nzb.Business
             var retour = false;
             using (var reponse = this.InterfaceWebManager.DataPost(postParameters))
             {
-                var st1 = string.Empty;
+                var returnStatus = string.Empty;
                 Contract.Requires(reponse != null);
                 using (var responseReader = new StreamReader(reponse.GetResponseStream()))
                 {
-                    st1 = responseReader.ReadToEnd();
+                    returnStatus = responseReader.ReadToEnd().TrimFullToEnd();
                 }
 
-                LogManager.Current.Debug($"Aprés import, {reponse.StatusCode}, Chaine retour: {st1}");
+                LogManager.Current.Debug($"Aprés import, {reponse.StatusCode}, Chaine retour: {returnStatus}");
                 retour = reponse.StatusCode == HttpStatusCode.OK;
             }
 

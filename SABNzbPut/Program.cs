@@ -15,7 +15,7 @@ namespace SABNzbPut
 {
     class Program
     {
-        private static Lazy<NzbPut> _nzbBusiness = new Lazy<NzbPut>(() =>
+        private static readonly Lazy<NzbPut> _nzbBusiness = new Lazy<NzbPut>(() =>
         {
             var retour = new NzbPut();
             retour.NzbEventHander += (s, e) =>
@@ -60,6 +60,7 @@ namespace SABNzbPut
 
                     try
                     {
+                        
                         Program.Traitement(fileName);
                     }
                     catch (FileNotFoundException ex)
@@ -79,11 +80,16 @@ namespace SABNzbPut
                         throw;
                     }
                 }
-
                 catch (AbandonedMutexException ex)
                 {
                     LogManager.Current.Error(ex);
+                    mutexAcquired = false;
                     throw;
+                }
+                finally
+                {
+                    if (mutexAcquired)
+                        mutex.ReleaseMutex();
                 }
             }
         }
